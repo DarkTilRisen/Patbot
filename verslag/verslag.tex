@@ -1,0 +1,283 @@
+
+%
+% Original author:
+% Frits Wenneker (http://www.howtotex.com) with extensive modifications by
+% Vel (vel@LaTeXTemplates.com)
+%
+% License:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[twoside,twocolumn]{article}
+\usepackage{skak}
+%\usepackage{listings}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage{standalone}
+\usepackage{algpseudocode}
+\usepackage[backend=bibtex8,style=authoryear]{biblatex}
+\bibliography{citations}
+
+\usepackage[sc]{mathpazo} % Use the Palatino font
+\usepackage[T1]{fontenc} % Use 8-bit encoding that has 256 glyphs
+\linespread{1.05} % Line spacing - Palatino needs more space between lines
+\usepackage{microtype} % Slightly tweak font spacing for aesthetics
+\usepackage{graphicx}
+\usepackage[dutch]{babel} % Language hyphenation and typographical rules
+
+\usepackage[hmarginratio=1:1,top=32mm,columnsep=20pt]{geometry} % Document margins
+\usepackage[hang, small,labelfont=bf,up,textfont=it,up]{caption} % Custom captions under/above floats in tables or figures
+\usepackage{booktabs} % Horizontal rules in tables
+
+\usepackage{lettrine} % The lettrine is the first enlarged letter at the beginning of the text
+
+\usepackage{enumitem} % Customized lists
+\setlist[itemize]{noitemsep} % Make itemize lists more compact
+
+\usepackage{abstract} % Allows abstract customization
+\renewcommand{\abstractnamefont}{\normalfont\bfseries} % Set the "Abstract" text to bold
+\renewcommand{\abstracttextfont}{\normalfont\small\itshape} % Set the abstract itself to small italic text
+\usepackage{listings}
+
+\usepackage{titlesec} % Allows customization of titles
+\renewcommand\thesection{\Roman{section}} % Roman numerals for the sections
+\renewcommand\thesubsection{\roman{subsection}} % roman numerals for subsections
+\renewcommand\thesubsubsection{\arabic{subsubsection}}
+\titleformat{\section}[block]{\large\scshape\centering}{\thesection.}{1em}{} % Change the look of the section titles
+\titleformat{\subsection}[block]{\large}{\thesubsection.}{1em}{} % Change the look of the section titles
+\titleformat{\subsubsection}[block]{\normalsize}{\thesubsubsection.}{1em}{}
+\setlength{\parindent}{0cm}
+\usepackage{fancyhdr} % Headers and footers
+\pagestyle{fancy} % All pages have headers and footers
+\fancyhead{} % Blank out the default header
+\fancyfoot{} % Blank out the default footer
+\fancyhead[C]{ Tobiah Lissens $\bullet$ December 2017 $\bullet$ Huffman Algoritmen} % Custom header text
+\fancyfoot[RO,LE]{\thepage} % Custom footer text
+\newcommand{\code}[1]{\texttt{#1}}
+\usepackage{titling} % Customizing the title section
+
+\usepackage{hyperref} % For hyperlinks in the PDF
+%\usepackage[all]{hypcap}
+\usepackage{tikz} % For drawing graphs
+\usepackage{array}
+\usepackage[figurename=Figuur]{caption}
+\usetikzlibrary{
+  shapes.multipart,
+  matrix,
+  positioning,
+  shapes.callouts,
+  shapes.arrows,
+  calc,
+  graphs,
+  }
+\floatname{algorithm}{Algoritme}
+%\renewcommand{\algorithmcfname}{Algoritme}
+
+%----------------------------------------------------------------------------------------
+%	TITLE SECTION
+%----------------------------------------------------------------------------------------
+
+\setlength{\droptitle}{-4\baselineskip} % Move the title up
+
+\pretitle{\begin{center}\Huge} % Article title formatting
+\posttitle{\end{center}} % Article title closing formatting
+\title{Algoritmen en datastructuren 3 \\ Huffman algoritmen } % Article title
+\author{%
+\textsc{Tobiah lissens}\\[1ex]% Your name
+\normalsize Universiteit Gent \\ % Your institution
+}
+\date{6 December 2017} % Leave empty to omit a date
+
+\renewcommand{\maketitlehookd}{%
+\renewcommand{\abstractname}{Samenvatting}
+\begin{abstract}
+\noindent In dit verslag wordt een manier gegeven om een simpele schaakcomputer in prolog te schrijven.
+De invoer en uitvoer wordt aan de hand van Forsyth-Edwards Notation gedaan, dit is een korte voorstelling van het schaakbord.
+Eerst wordt kort aangehaald hoe deze invoer omgezet kan worden naar een interne prolog voorsteling aan de hand van Definate Clause Grammer.
+Vervolgens wordt een besproken hoe we met minimax de beste zet kunnen vinden in een spelboom.
+Als laatste worden enkele optimalisaties besproken zoals het gebruik van alfa-beta-snoeien.
+Het resultaat is een schaakcomputer die enkele spelen kan drawen tegen Stockfisch niveau 1.
+\end{abstract} 
+}
+
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+\lstset{language=Prolog} 
+\maketitle
+
+%----------------------------------------------------------------------------------------
+%	ARTICLE CONTENTS
+%----------------------------------------------------------------------------------------
+
+\section{Inleiding}
+%zever
+Schaken is een heel bekende denksport.
+Het evalueren van een schaakpositie behoord echter tot de complexiteitsklasse EXPTIME.
+Hierdoor is een optimale manier van schaken nog steeds een raadsel.
+Dit heeft programmeurs echter niet tegengehouden de uitdaging aan te gaan om schaakcomputers te schrijven die beter zijn als de menselijke meesters.
+Enkele bekende schaakcomputers zijn Stockfisch 9, Houdini6 en Alpha Zero.
+De bedoeling van dit project is een schaakcomputer te schrijven die gelijkspel kan spelen tegen de schaackcomputer stockfisch 9 op het laagste niveau.
+
+ 
+
+%----------------------------------------------------------------------------------------
+    
+\section{Fen Invoer en uitvoer}
+    Het parsen van de FEN\footnote{Forsyth-Edwards Notation} gebeurt aan de hand van DCG\footnote{Definite clause grammar}.
+    Deze manier van parsen is bijzonder handig omdat je bidirectioneel kan converteren van FEN string naar een interne representatie en van een interne representatie naar FEN.
+    
+    \begin{center}
+        \newgame
+        \fenboard{6R1/K7/8/7k/8/8/8/7R w KQkq - 10 50}
+        \showboard
+        \\
+        \code{FEN 6R1/K7/8/7k/8/8/8/7R w KQkq - 10 50}
+    \end{center}
+    
+    
+De bovenstaande configuratie wordt intern met de volgende term voorgesteld.
+
+    \begin{lstlisting}
+
+fen_config(
+board(
+row(nil,nil,nil,nil,nil,nil,piece(w,rook),nil),
+row(piece(w,king),nil,nil,nil,nil,nil,nil,nil),
+row(nil,nil,nil,nil,nil,nil,nil,nil),
+row(nil,nil,nil,nil,nil,,nil,piece(b, king)),
+row(nil,nil,nil,nil,nil,nil,nil,nil),
+row(nil,nil,nil,nil,nil,nil,nil,nil),
+row(nil,nil,nil,nil,nil,nil,nil,nil),
+row(nil,nil,nil,nil,nil,nil,nil,piece(w,rook))
+),w,castle(false,false,false,false),nil,10,50
+)
+    \end{lstlisting}
+
+    
+   
+%----------------------------------------------------------------------------------------
+\section{Genereren Zetten}
+    Het genereren van zetten gebeurt voor de Loper, Toren, Koningin en Koning allemaal op dezelde manier. 
+    Aan de hand van de \code{movement} regel hier kan een lijst van richtingen en een range\footnote{het maximaal aantal vakjes dat ze kunnen opschuiven} aan worden meegeven.
+    Zo zijn de richtingen voor de stukken als volgt: \\
+    \begin{table}[H]
+        \caption{richtingen}
+        \label{tab:}
+        \begin{center}
+            \begin{tabular}{|c|c|c|}
+            \hline
+                stuk & richtingen & bereik\\
+            \hline
+                \symbishop & \code{-1/1, 1/1, -1/-1, 1/-1} & 8\\
+            \hline
+                \symrook & \code{-1/0, 1/0, 0/-1, 0/-1} & 8\\
+            \hline
+                \symqueen & \symrook $+$ \symbishop & 8\\
+            \hline
+                \symking & \symqueen & 1\\
+            \hline
+            \end{tabular}
+        \end{center}
+    \end{table}
+    Verder kan het paard geïmplementeerd worden door de huidige posite met een positie uit:\\
+    \code{-2/-1 -1/-2 1/-2 2/-1 -2/1 -1/2 1/2 2/1} \\
+    op te tellen.
+    De pion bestaat uit heel veel uitzonderingen waarvoor elk een apparte regel is gemaakt.
+    Verder word het checken op schaak staan na een zet gedaan door alle mogelijke volgende borden te genereren en te controleren of de koning nog op het veld staat.
+    Deze manier van controleren op schaak is alles behalve efficiënt, maar dit wordt bij het opbouwen van de spelboom bij minimax toch maar uitzonderlijk gebruik van gemaakt.
+
+
+
+%----------------------------------------------------------------------------------------
+\section{Minimax}
+
+\section{Alpha-Beta} 
+   
+%----------------------------------------------------------------------------------------
+\section{Evaluatie}
+ Bij het afsluiten van een zoekboom op een zeker diepte moeten we een positie kunnen evalueren.
+ Het kiezen van een goede evaluatie functie is enorm belangrijk.
+ In deze implementatie hebben we gekozen voor een simplified chess evaluatie functie die in \cite{evaluation} staat uitgelegd.
+ Het komt er op neer dat elke stuk de waarde zoals in Tabel \ref{tab:waarden}  wordt toegekend.
+ De meeste waarden zijn vanzelfsprekend behalve deze voor \symknight en \symbishop. 
+ De meeste schaakboeken kennen deze elke een score van 300 toe maar om te voorkomen dat deze stukken worden geruild voor 3 pionen. 
+ En om er voor te zorgen dat bischop paren meer waard zijn dan paarden paren krijgen die een iets wat afwijkende waarde.
+ \begin{table}[H]
+     \begin{center}
+         \begin{tabular}{|c|c|}
+         \hline
+                stuk & waarde \\
+         \hline
+               \sympawn & 100 \\
+         \hline
+               \symknight & 320 \\
+         \hline
+               \symbishop & 330 \\
+         \hline
+               \sympawn & 500 \\
+         \hline
+               \symqueen & 900 \\
+         \hline
+               \symking & 20000\\
+         \hline
+         \end{tabular}
+     \end{center}
+     \caption{Waarden van stukken}
+     \label{tab:waarden}
+ \end{table}
+    
+Verder is bij het evalueren ook de positie van de stukken belangrijk. Het aantal velden dat ze bedrijgen en het samen hangen van pionenen enzovoort.
+Hiervoor wordt er gebruik gemaakt van positie tabellen. Dit zijn tabellen die voor elke coördinaat een bonus waarde of penalty toekennen.
+%----------------------------------------------------------------------------------------
+
+
+\section{Bespreking} 
+In Tabel.\ref{result} zien we de de schaakinator2000 die 20 games tegen de stockfish engine en 20 games tegen de pychess engine gespeeld heeft.
+Hier zien we de dat stockfish engine het beduidend beter doet dan de schaakinator 2000 en pychess. 
+
+Verder kunnen we nog enkele mogelijke verbeteringen opsommen.
+De huidige versie van patbot kan geen onderscheid maken tussen gamefases.
+We zouden een heuristiek voor kunnen schrijven die de gamefase bepaalt bv door het aantal aanwezige stukken/pionen.
+Aan de hand van  de gamefase zouden we dan onze pos/stuk-score kunnen aanpassen.
+Een koning in het begin en einde aan de rand is goed maar in het eindspel is het meestal voordelig deze in het spel te betrekken.
+
+Verder maakt de huidige schaakcomputer ook nog gebruik van semi-legale-zettengeneratie dit wil zeggen dat we bij het genereren van de moves in de spelboom niet checken of onze koning schaak staat na een bepaalde zet. Het probleem hiermee is dat wanneer de schaakbot zijn tegenstander schaak mat wil zetten hij niet kan weten of deze mat of pat staat.
+Door het gebruik van de gamefases zouden we in het eindspel kunnen overschakelen naar legale move generatie checken op schaak is iets zwaarder maar in het eindspel is het aantal mogelijke zetten ook een stuk kleiner.
+\begin{table}[H]
+    \caption{Resulataten op 20 games}
+    \label{tab:result}
+
+    \begin{center}
+        \begin{tabular}{|c|c|c|c|}
+            \hline
+           match & win & loss & draw \\
+           \hline
+           pychess vs chesinator2000  & \\
+            \hline
+           stockfish 9 vs chesinator2000  & \\
+           \hline
+           stockfish 9 vs pychess &\\
+            \hline
+        \end{tabular}
+    \end{center}
+\end{table}
+
+
+%----------------------------------------------------------------------------------------
+\section{Conclusie}
+Zoals verwacht is het schrijven van een goede schaakcomputer een hele grote uitdaging die buiten de scope van dit vak.
+Het is dus ook logisch dat deze schaakcomputer niet fantastisch goed presteerd.
+Desalnietemin is deze schaakcomputer een mooie proof of concept. 
+Die andere schaakcomputers op hun laagste niveau als het mee zit kan verslaan.
+
+
+
+
+%----------------------------------------------------------------------------------------
+%	REFERENCE LIST
+%----------------------------------------------------------------------------------------
+\printbibliography
+%----------------------------------------------------------------------------------------
+\end{document}
